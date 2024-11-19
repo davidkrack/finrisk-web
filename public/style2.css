@@ -1,0 +1,45 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: url('/img/bg.jpeg') no-repeat center center fixed;
+    background-size: cover;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #ffffff;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+p {
+    text-align: center;
+    font-size: 1.5em;
+    margin-bottom: 30px;
+}
+
+div {
+    text-align: center;
+}
+
+button {
+    padding: 15px 30px;
+    margin: 10px;
+    font-size: 1.2em;
+    color: #ffffff;
+    background-color: #b80f22; /* Rojo oscuro */
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #ff5722; /* Naranja */
+}

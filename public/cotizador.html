@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pension Estimator</title>
+    <link rel="stylesheet" href="cotizador.css">
+</head>
+<body>
+
+<div class="container">
+    <!-- Step navigation -->
+    <div class="steps">
+        <div class="step active" id="info-step">1. Ingreso de Información</div>
+        <div class="step" id="results-step">2. Resultados</div>
+    </div>
+
+    <!-- Formulario inicial -->
+    <form id="pension-form">
+        <h2>¿Cuánto le gustaría que durara su pensión?</h2>
+        <div class="radio-group">
+            <input type="radio" id="life_single" name="income_duration" value="single" required>
+            <label for="life_single">Para toda la vida</label><br>
+
+            <input type="radio" id="life_joint" name="income_duration" value="joint">
+            <label for="life_joint">Por un período de tiempo</label><br>
+        </div>
+
+        <h2>¿Le gustaría que en caso de muerte un beneficiario recibiera su pensión?</h2>
+        <div class="radio-group">
+            <input type="radio" id="beneficiary_yes" name="beneficiary_option" value="yes" required>
+            <label for="beneficiary_yes">Si</label><br>
+
+            <input type="radio" id="beneficiary_no" name="beneficiary_option" value="no">
+            <label for="beneficiary_no">No</label><br>
+        </div>
+
+        <h2>¿Desearía tener un seguro de vida durante la vigencia de la pensión?</h2>
+        <div class="radio-group">
+            <input type="radio" id="insurance_yes" name="insurance_option" value="yes" required>
+            <label for="insurance_yes">Si</label><br>
+
+            <input type="radio" id="insurance_no" name="insurance_option" value="no">
+            <label for="insurance_no">No</label><br>
+        </div>
+
+        <h2>¿Le gustaría que se le devolviera un monto de dinero si sobrevive el período de duración de la pensión?</h2>
+        <div class="radio-group">
+            <input type="radio" id="refund_yes" name="refund_option" value="yes" required>
+            <label for="refund_yes">Si</label><br>
+
+            <input type="radio" id="refund_no" name="refund_option" value="no">
+            <label for="refund_no">No</label><br>
+        </div>
+        <h2>¿En qué moneda desea recibir su pensión?</h2>
+        <div class="radio-group">
+            <input type="radio" id="currency_soles" name="currency_option" value="Soles" required>
+            <label for="currency_soles">Soles</label><br>
+
+            <input type="radio" id="currency_dollars" name="currency_option" value="Dolares">
+            <label for="currency_dollars">Dolares</label><br>
+        </div>  
+        <h2>¿Cuánto le gustaría invertir para su pensión?</h2>
+        <div class="investment-container">
+            <span class="investment-label">Monto a Invertir $</span>
+            <select id="invested_amount" required>
+                <option value="">Seleccione un monto</option>
+            </select>
+        </div>
+
+        <div class="divider"></div>
+        <h2>Acerca de Usted</h2>
+        <div class="about-section">
+            <!-- Nombre -->
+            <div class="about-group">
+                <label for="name">Nombre</label>
+                <input type="text" id="name" required>
+            </div>
+            <!-- Sexo -->
+            <div class="about-group">
+                <label for="gender">Sexo</label>
+                <div class="radio-group-inline">
+                    <input type="radio" id="male" name="gender" value="male" required>
+                    <label for="male">Masculino</label>
+                    <input type="radio" id="female" name="gender" value="female">
+                    <label for="female">Femenino</label>
+                </div>
+            </div>
+            <!-- Email -->
+            <div class="about-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+        
+            <!-- Fecha de nacimiento -->
+            <div class="about-group">
+                <label for="birth_date">Fecha de Nacimiento</label>
+                <input type="date" 
+                       id="birth_date" 
+                       name="birth_date"
+                       min="1939-01-01" 
+                       max="2000-12-31" 
+                       required>
+            </div>             
+            <!-- Teléfono -->
+            <div class="about-group">
+                <label for="phone">Teléfono</label>
+                <input type="tel" id="phone" required>
+            </div>
+        </div>               
+        <div class="divider"></div>
+        <button type="button" id="calculate-btn">Siguiente</button>
+    </form>
+    <div id="loading-spinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>Calculando su pensión...</p>
+    </div>
+</div>
+
+<!-- Resultados -->
+<div class="container" id="results-container" style="display:none;">
+    <div class="steps">
+        <div class="step" id="info-step">1. Ingreso de Información</div>
+        <div class="step active" id="results-step">2. Resultados</div>
+    </div>
+
+    <h2>Su Información</h2>
+    <div class="info-box">
+        <div class="info-row">
+            <div class="info-label">Nombre</div>
+            <div class="info-data" id="result-name"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Duración de la Pensión</div>
+            <div class="info-data" id="result-duration"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Monto Invertido</div>
+            <div class="info-data" id="result-investment"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Email</div>
+            <div class="info-data" id="result-email"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Teléfono</div>
+            <div class="info-data" id="result-phone"></div>
+        </div>
+    </div>
+
+    <h2>Resumen de Resultados Propuestos de Acuerdo a sus Preferencias</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>PENSIÓN</th>
+                <th>Moneda</th>
+                <th>Temporalidad</th>
+                <th>Garantizado</th>
+                <th>Monto por Fallecimiento</th>
+                <th>Monto Supervivencia</th>
+                <th>Gasto Sepelio</th>
+                <th>Monto Recibido Total</th>
+            </tr>
+        </thead>
+        <tbody id="results-body">
+            <!-- Los resultados se generarán aquí -->
+        </tbody>
+    </table>
+    <div class="explanations">
+        <div class="concept-explanation">
+            <strong>Pensión:</strong>
+            <span>Monto de la pensión mensual a pagar al asegurado.</span>
+        </div>
+    
+        <div class="concept-explanation">
+            <strong>Temporalidad:</strong>
+            <span>La renta se pagará hasta el número de meses indicado o hasta su muerte, lo que ocurra primero, esta puede tener una duración temporal o vitalicia.</span>
+        </div>
+    
+        <div class="concept-explanation">
+            <strong>Garantizado:</strong>
+            <span>El período garantizado indica que durante su vigencia la renta se pagará siempre, ya sea al asegurado o si este fallece a un beneficiario designado por este.</span>
+        </div>
+    
+        <div class="concept-explanation">
+            <strong>Monto por Fallecimiento:</strong>
+            <span>Corresponde a un monto que se pagará al beneficiario que este designe en caso de fallecimiento del asegurado.</span>
+        </div>
+    
+        <div class="concept-explanation">
+            <strong>Monto Supervivencia:</strong>
+            <span>Monto que se pagará al asegurado en caso de sobrevivir al período temporal. Solo a plica a rentas temporales y no vitalicias.</span>
+        </div>
+    
+        <div class="concept-explanation">
+            <strong>Gasto Sepelio:</strong>
+            <span>El gasto de sepelio corresponde a un monto destinado a gastos funerarios en caso de fallecimiento del asegurado.</span>
+        </div>
+    
+        <div class="concept-explanation">
+            <strong>Monto Recibido Total:</strong>
+            <span>Sumatoria nominal de las pensiones pagadas en caso de supervivencia al período temporal o hasta el final de la tabla de mortalidad en el caso vitalicio.</span>
+        </div>
+    </div>
+    <div class="graph-section">
+        <div id="graphs-container">
+            <div class="tabs-header">
+                <button class="tab-button active" data-tab="option1">Opción 1</button>
+                <button class="tab-button" data-tab="option2">Opción 2</button>
+                <button class="tab-button" data-tab="option3">Opción 3</button>
+                <button class="tab-button" data-tab="option4">Opción 4</button>
+            </div>
+            <div class="tabs-content">
+                <div id="option1" class="tab-content active">
+                    <div id="graph-1" class="graph-container"></div>
+                </div>
+                <div id="option2" class="tab-content">
+                    <div id="graph-2" class="graph-container"></div>
+                </div>
+                <div id="option3" class="tab-content">
+                    <div id="graph-3" class="graph-container"></div>
+                </div>
+                <div id="option4" class="tab-content">
+                    <div id="graph-4" class="graph-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="button-container" style="text-align: center; margin-top: 20px;">
+        <button type="button" id="recalculate-btn" class="btn">Volver a calcular</button>
+        <button type="button" id="contact-btn">Quiero que me Contacten</button>
+    </div>
+</div>
+<div id="custom-modal" class="custom-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="modal-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64">
+                    <circle cx="12" cy="12" r="11" fill="#28a745"/>
+                    <path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none"/>
+                </svg>
+            </div>
+            <p id="modal-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-button">Aceptar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Al final del body -->
+<script src="js/PensionGraphs.js"></script>
+<script src="js/Calculo_RRPP.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="js/cotizador.js"></script>
+</body>
+</html>

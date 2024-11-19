@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-box">
+        <img src="img/logo2.png" class="avatar" alt="Finrisk Logo">
+        <h1>Inicio Sesion Cotizador Web RRPP</h1>
+        <form action="/auth/login" method="POST">
+
+            <div>
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" name="username" placeholder="Enter Username" required>
+            </div>
+            <div>
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" name="password" placeholder="Enter Password" required>
+            </div>
+            <input type="submit" value="Ingresar">
+            <a href="#">¿Perdiste tu contraseña?</a><br>
+            <a href="#">¿No tienes una cuenta?</a>
+        </form>
+    </div>
+</body>
+</html>
+
+

@@ -1,0 +1,77 @@
+/* Reinicio de márgenes y padding */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #0033a1; /* Color del encabezado */
+    color: white;
+    padding: 15px 0;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+}
+
+nav ul li {
+    margin-left: 20px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: white;
+    font-size: 1.1em;
+}
+
+nav ul li a:hover {
+    text-decoration: underline;
+}
+
+/* Sección principal */
+.hero {
+    text-align: center;
+    padding: 100px 20px;
+    background-color: #f0f8ff;
+}
+
+.hero h2 {
+    font-size: 2.5em;
+    color: #0033a1;
+}
+
+.options button {
+    background-color: #0033a1; /* Color del botón */
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    margin: 20px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.options button:hover {
+    background-color: #0055d4;
+}
