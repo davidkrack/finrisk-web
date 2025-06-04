@@ -8,7 +8,8 @@ import traceback
 app = Flask(__name__)
 CORS(app)
 
-def calculate_payment_period(capital, pension, tasa_anual):
+def calculate_n_months(capital, pension, tasa_anual):
+    # Equivalente a: LN(((C9-1)*C5/C10)+1)/LN(C9)
     tasa_mensual = pow(1 + tasa_anual/100, 1/12) - 1
     v = 1 / (1 + tasa_mensual)
     try:
@@ -16,6 +17,17 @@ def calculate_payment_period(capital, pension, tasa_anual):
         return n_meses
     except:
         return 0
+
+def calculate_rent_amount(edad_actual, edad_inicio, periodo_anios, pension):
+    """
+    edad_actual: edad en años
+    edad_inicio: edad inicial (C13 en Excel)
+    periodo_anios: periodo en años (D16 en Excel)
+    pension: monto de la pensión (J6 en Excel)
+    """
+    if edad_actual <= edad_inicio + periodo_anios:
+        return pension
+    return 0
 
 @app.route('/generate-graph', methods=['POST'])
 def generate_graph():
@@ -58,7 +70,7 @@ def generate_graph():
         tasa_anual = 0.01  # Fija en 1%
         
         # Calcular período de pago
-        n_meses = calculate_payment_period(capital_inicial, pension, tasa_anual)
+        n_meses = calculate_n_months(capital_inicial, pension, tasa_anual)
         pago_total = pension * n_meses
         
         # Calcular edad actual desde fecha de nacimiento
@@ -81,26 +93,30 @@ def generate_graph():
         print(f"- N Meses: {n_meses}")
         print(f"- Pago Total: {pago_total}")
 
-        periodo_retiro = calculate_payment_period(capital_inicial, pension, tasa_anual)
-        
-        # Generar datos para el gráfico
+        # Calcular período
+        periodo_retiro = calculate_n_months(capital_inicial, pension, tasa_anual)
+        periodo_anios = round(n_meses / 12)  # Equivalente a D8 = C8/12
+        periodo_renta = round(temporalidad / 12)  # Periodo en años para la renta
+
         edades = list(range(edad_inicial, edad_final + 1))
         retiro_mensual = []
         renta_mensual = []
 
         for edad in edades:
-            if edad <= edad_inicial + (periodo_retiro/12):  # Período calculado para retiro
+            # Retiro Mensual: SI(H7<=C13+D8;I6;0)
+            if edad <= edad_inicial + periodo_anios:
                 retiro_mensual.append(pension)
-                renta_mensual.append(pension)
-            elif temporalidad == 1320:  # Si es vitalicio
-                retiro_mensual.append(0)
-                renta_mensual.append(pension)  # Mantener la renta constante hasta el final
-            elif edad <= edad_inicial + (temporalidad/12):  # Si es temporal, usar temporalidad del backend
-                retiro_mensual.append(0)
-                renta_mensual.append(pension)
             else:
                 retiro_mensual.append(0)
-                renta_mensual.append(0)
+
+            # Renta Mensual: SI(H8<=C13+D16;J7;0)
+            if temporalidad == 1320:  # Si es vitalicio
+                renta_mensual.append(pension)
+            else:
+                if edad <= edad_inicial + periodo_renta:
+                    renta_mensual.append(pension)
+                else:
+                    renta_mensual.append(0)
 
         fig = go.Figure()
         

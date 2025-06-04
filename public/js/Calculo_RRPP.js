@@ -44,7 +44,7 @@ function Calculo_RRPP(Dat_Princ, Dat_Benef, url_root, ServFunc) {
     Json_in.Seguro_Devolucion = Dat_Princ[3] || 'No';
     Json_in.Seguro_Temporal = Dat_Princ[4] || 'No';
     Json_in.Moneda_Seguro = Dat_Princ[6] || 'Soles';
-    Json_in.Deseo_Contacto = Dat_Princ[7] || 'No';  // Nuevo campo agregado
+    Json_in.Deseo_Contacto = Dat_Princ[7] || 'N';
 
     if (Dat_Benef && Array.isArray(Dat_Benef) && Dat_Benef.length > 0 && Array.isArray(Dat_Benef[0])) {
         Json_Ben.Relacion = Dat_Benef[0][0] || '';
@@ -53,12 +53,9 @@ function Calculo_RRPP(Dat_Princ, Dat_Benef, url_root, ServFunc) {
         Json_Ben.Porcent_Pago = Dat_Benef[0][3] || '1';
         Json_Ben.Salud = Dat_Benef[0][4] || 'SAN';
         Json_Ben.Temporalidad_Pago = Dat_Benef[0][5] || '0';
-        Json_Ben.Nombre = Dat_Benef[0][6] || '';       // Nuevo campo agregado
-        Json_Ben.email = Dat_Benef[0][7] || '';        // Nuevo campo agregado
-        Json_Ben.Telefono = Dat_Benef[0][8] || '';     // Nuevo campo agregado
-    } else {
-        console.error('Dat_Benef no tiene la estructura esperada:', Dat_Benef);
-        throw new Error('Datos de beneficiario inválidos');
+        Json_Ben.Nombre = Dat_Benef[0][6] || '';
+        Json_Ben.email = Dat_Benef[0][7] || '';
+        Json_Ben.Telefono = Dat_Benef[0][8] || '';
     }
 
     Json_in.Benef_Array = [Json_Ben];
@@ -80,11 +77,34 @@ function Calculo_RRPP(Dat_Princ, Dat_Benef, url_root, ServFunc) {
 
         xhr.onload = function() {
             if (xhr.status === 200) {
-                const Respuesta = xhr.response;
                 try {
+                    // Verificar si la respuesta está vacía
+                    if (!xhr.response || xhr.response.trim() === '') {
+                        throw new Error('La respuesta del servidor está vacía');
+                    }
+
+                    console.log('Respuesta cruda del servidor:', xhr.response);
+
+                    const Respuesta = xhr.response;
                     const JsonRespuesta = JSON.parse(Respuesta);
+                    
+                    if (!JsonRespuesta || !JsonRespuesta.result) {
+                        throw new Error('Respuesta del servidor malformada');
+                    }
+
+                    console.log('JsonRespuesta parseado:', JsonRespuesta);
+
                     const jsobject = JSON.parse(JsonRespuesta.result);
-        
+                    
+                    if (!jsobject) {
+                        throw new Error('Error al parsear el resultado');
+                    }
+
+                    console.log('Objeto final parseado:', jsobject);
+
+                    // Inicializar array de resultados
+                    const Resultado_Func = [];
+
                     // Opción 1
                     Resultado_Func[0] = jsobject.TIR1;
                     Resultado_Func[1] = jsobject.VAN1;
@@ -138,22 +158,29 @@ function Calculo_RRPP(Dat_Princ, Dat_Benef, url_root, ServFunc) {
                     Resultado_Func[43] = jsobject.Moneda4;
 
                     Resultado_Func[44] = jsobject.ETX1;
-        
+
                     console.log('Resultado_Func:', Resultado_Func);
                     resolve(Resultado_Func);
                 } catch (e) {
-                    console.error('Error al procesar la respuesta:', e);
+                    console.error('Error detallado:', e);
+                    console.error('Respuesta raw:', xhr.response);
                     reject('Error al procesar la respuesta: ' + e.message);
                 }
             } else {
                 console.error('Error en la solicitud HTTP:', xhr.status);
+                console.error('Respuesta del servidor:', xhr.response);
                 reject('Error en la solicitud: ' + xhr.status);
             }
         };
 
-        xhr.onerror = function() {
-            console.error('Error en la conexión al servidor');
+        xhr.onerror = function(e) {
+            console.error('Error en la conexión al servidor:', e);
             reject('Error en la conexión al servidor.');
+        };
+
+        xhr.timeout = 3000000; // 30 segundos
+        xhr.ontimeout = function() {
+            reject('Tiempo de espera agotado');
         };
 
         xhr.send();

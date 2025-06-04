@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Agente</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function AgentDashboard() {
+            const [clientData, setClientData] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [currentPage, setCurrentPage] = useState(1);
+            const [contactFilter, setContactFilter] = useState('all');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [fieldFilter, setFieldFilter] = useState('all');
+            const [stats, setStats] = useState({
+                totalClients: 0,
+                needsContact: 0,
+                averageAmount: 0
+            });
+            const chartSolesRef = useRef(null);
+            const chartDolaresRef = useRef(null);
+            const chartInstanceSoles = useRef(null);
+            const chartInstanceDolares = useRef(null);
+            const ITEMS_PER_PAGE = 20;
+
+            useEffect(() => {
+                fetchData();
+            }, []);
+
+            useEffect(() => {
+                setCurrentPage(1);
+            }, [searchTerm, contactFilter, fieldFilter]);
+
+            useEffect(() => {
+                if (clientData.length > 0) {
+                    createCharts();
+                }
+            }, [clientData]);
+
+            const createCharts = () => {
+                const solesData = clientData.filter(client => client.MONEDA_PAGO_PENSION === 'Soles');
+                const dolaresData = clientData.filter(client => client.MONEDA_PAGO_PENSION === 'Dolares');
+
+                const getRanges = (data) => {
+                    const ranges = {
+                        '0-50k': 0,
+                        '50k-100k': 0,
+                        '100k-150k': 0,
+                        '150k-200k': 0,
+                        '200k+': 0
+                    };
+
+                    data.forEach(client => {
+                        const amount = parseFloat(client.PRIMA_TOT);
+                        if (amount <= 50000) ranges['0-50k']++;
+                        else if (amount <= 100000) ranges['50k-100k']++;
+                        else if (amount <= 150000) ranges['100k-150k']++;
+                        else if (amount <= 200000) ranges['150k-200k']++;
+                        else ranges['200k+']++;
+                    });
+
+                    return ranges;
+                };
+
+                const solesRanges = getRanges(solesData);
+                const dolaresRanges = getRanges(dolaresData);
+
+                const chartConfig = (data, label, color) => ({
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data),
+                        datasets: [{
+                            label: label,
+                            data: Object.values(data),
+                            backgroundColor: color,
+                            borderColor: color,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: `Distribución de Cotizaciones en ${label}`
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (chartInstanceSoles.current) {
+                    chartInstanceSoles.current.destroy();
+                }
+                const ctxSoles = chartSolesRef.current.getContext('2d');
+                chartInstanceSoles.current = new Chart(ctxSoles, 
+                    chartConfig(solesRanges, 'Soles', 'rgba(75, 192, 192, 0.8)')
+                );
+
+                if (chartInstanceDolares.current) {
+                    chartInstanceDolares.current.destroy();
+                }
+                const ctxDolares = chartDolaresRef.current.getContext('2d');
+                chartInstanceDolares.current = new Chart(ctxDolares, 
+                    chartConfig(dolaresRanges, 'Dólares', 'rgba(54, 162, 235, 0.8)')
+                );
+            };
+
+            const fetchData = async () => {
+                try {
+                    const response = await fetch('/api/client-data');
+                    if (!response.ok) {
+                        throw new Error('Error al cargar datos');
+                    }
+                    const data = await response.json();
+                    setClientData(data);
+                    calculateStats(data);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const calculateStats = (data) => {
+                const total = data.length;
+                const needsContact = data.filter(client => client.DESEA_SER_CONTACTADO === 'S').length;
+                const avgAmount = data.reduce((sum, client) => sum + parseFloat(client.PRIMA_TOT || 0), 0) / total;
+
+                setStats({
+                    totalClients: total,
+                    needsContact: needsContact,
+                    averageAmount: avgAmount
+                });
+            };
+
+            const filteredData = clientData.filter(client => {
+                const matchesContact = contactFilter === 'all' ? true : 
+                    contactFilter === 'yes' ? client.DESEA_SER_CONTACTADO === 'S' : 
+                    client.DESEA_SER_CONTACTADO === 'N';
+                
+                let matchesField = true;
+                switch(fieldFilter) {
+                    case 'nombre':
+                        matchesField = !!client.NOMBRE?.trim();
+                        break;
+                    case 'email':
+                        matchesField = !!client.EMAIL?.trim();
+                        break;
+                    case 'telefono':
+                        matchesField = !!client.TELEFONO?.trim();
+                        break;
+                    case 'empty':
+                        matchesField = !client.NOMBRE?.trim() || !client.EMAIL?.trim() || !client.TELEFONO?.trim();
+                        break;
+                }
+                
+                const matchesSearch = !searchTerm || 
+                    (client.NOMBRE?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                    (client.EMAIL?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                    (client.TELEFONO || '').includes(searchTerm);
+
+                return matchesContact && matchesField && matchesSearch;
+            });
+
+            const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+            const paginatedData = filteredData.slice(
+                (currentPage - 1) * ITEMS_PER_PAGE,
+                currentPage * ITEMS_PER_PAGE
+            );
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center h-screen">
+                        <div className="text-lg">Cargando...</div>
+                    </div>
+                );
+            }
+
+            if (error) {
+                return (
+                    <div className="flex items-center justify-center h-screen">
+                        <div className="text-lg text-red-600">Error: {error}</div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="p-6 bg-gray-100 min-h-screen">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold">Dashboard de Agente</h1>
+                        <button 
+                            onClick={() => window.logout()}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                        >
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h2 className="text-sm text-gray-600">Total Clientes</h2>
+                            <p className="text-3xl font-bold">{stats.totalClients}</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h2 className="text-sm text-gray-600">Solicitudes de Contacto</h2>
+                            <p className="text-3xl font-bold">{stats.needsContact}</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h2 className="text-sm text-gray-600">Promedio Prima</h2>
+                            <p className="text-3xl font-bold">
+                                ${stats.averageAmount.toLocaleString('es-PE', { 
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2 
+                                })}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 mb-6">
+                        <select 
+                            className="w-64 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value={contactFilter}
+                            onChange={(e) => setContactFilter(e.target.value)}
+                        >
+                            <option value="all">Todos los contactos</option>
+                            <option value="yes">Desean ser contactados</option>
+                            <option value="no">No desean ser contactados</option>
+                        </select>
+
+                        <select 
+                            className="w-64 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value={fieldFilter}
+                            onChange={(e) => setFieldFilter(e.target.value)}
+                        >
+                            <option value="all">Todos los registros</option>
+                            <option value="nombre">Con nombre completo</option>
+                            <option value="email">Con email</option>
+                            <option value="telefono">Con teléfono</option>
+                            <option value="empty">Registros incompletos</option>
+                        </select>
+
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre, email o teléfono..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-64 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div style={{ height: '300px' }}>
+                                <canvas ref={chartSolesRef}></canvas>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div style={{ height: '300px' }}>
+                                <canvas ref={chartDolaresRef}></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow mb-6">
+                        <div className="p-4 border-b">
+                            <h2 className="text-lg font-semibold">Clientes</h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="text-left p-4">Nombre</th>
+                                        <th className="text-left p-4">Email</th>
+                                        <th className="text-left p-4">Teléfono</th>
+                                        <th className="text-left p-4">Fecha Cotización</th>
+                                        <th className="text-left p-4">Moneda</th>
+                                        <th className="text-right p-4">Prima</th>
+                                        <th className="text-center p-4">Contactar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedData.map((client) => (
+                                        <tr key={`${client.ID_USUARIO}-${client.ID_SIMULACION}`} className="border-t">
+                                            <td className="p-4">{client.NOMBRE}</td>
+                                            <td className="p-4">{client.EMAIL}</td>
+                                            <td className="p-4">{client.TELEFONO}</td>
+                                            <td className="p-4">
+                                                {new Date(client.FECHA_CALCULO).toLocaleDateString()}
+                                            </td>
+                                            <td className="p-4">{client.MONEDA_PAGO_PENSION}</td>
+                                            <td className="p-4 text-right">
+                                                ${parseFloat(client.PRIMA_TOT || 0).toLocaleString('es-PE', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                })}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className={`px-2 py-1 rounded-full text-sm ${
+                                                    client.DESEA_SER_CONTACTADO === 'S' 
+                                                        ? 'bg-green-100 text-green-800' 
+                                                        : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {client.DESEA_SER_CONTACTADO === 'S' ? 'Sí' : 'No'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex justify-between items-center p-4 border-t">
+                            <div className="text-sm text-gray-600">
+                                Mostrando {filteredData.length === 0 ? 0 : ((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)} de {filteredData.length} resultados
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Agregar la función de logout al objeto window
+        window.logout = async function() {
+            try {
+                const response = await fetch('/auth/logout', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Error al cerrar sesión');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al cerrar sesión');
+            }
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AgentDashboard />);
+    </script>
+</body>
+</html>
